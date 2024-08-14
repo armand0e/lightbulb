@@ -1,0 +1,17 @@
+{
+    "name": "discordjs-bot",
+    "version": "1.0.0",
+    "description": "Discord bot converted from Python to JavaScript using discord.js",
+    "main": "src/index.js",
+    "scripts": {
+        "start": "node src/index.js"
+    },
+    "dependencies": {
+        "@discordjs/voice": "^0.13.0",
+        "dependencies": "^0.0.1",
+        "discord.js": "^14.15.3",
+        "dotenv": "^16.0.0",
+        "ffmpeg-static": "^4.4.0",
+        "yt-dlp-exec": ""
+    }
+}
