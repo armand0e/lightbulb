@@ -3,9 +3,7 @@ from discord import app_commands
 import yt_dlp as youtube_dl
 import asyncio
 import os
-from PIL import Image, ImageDraw, ImageFont
-import requests
-from io import BytesIO
+from easy_pil import Font, Editor, load_image_async
 
 # Intents and client setup
 intents = discord.Intents.default()
@@ -89,15 +87,53 @@ async def play_next_song(interaction):
 @client.event
 async def on_member_join(member):
     channel = member.guild.system_channel  # Use system channel if available
-    
     if channel is not None:
         # Mention #general channel by its ID
         general_channel = discord.utils.get(member.guild.text_channels, name="general")
         general_channel_mention = f"<#{general_channel.id}>" if general_channel else "#general"
-
         # Send the welcome message with the image
-        await channel.send(f"Hey {member.mention}, welcome to {member.guild.name}! Make sure to check out: {general_channel_mention}\nWe hope you enjoy your stay here. :purple_heart:")
+        await channel.send(f"Hey {member.mention} Welcome to {member.guild.name}! Make sure to check out: {general_channel_mention} We hope you enjoy your stay here. :purple_heart:")
+        # Load the image using `load_image_async` method
+        image = await load_image_async(member.display_avatar.url)
+        # Initialize the profile and pass image as a parameter
+        profile = Editor(image).resize((150, 150)).circle_image()
+        # Initialize the background and pass profile as a parameter
+        background = Editor("banner.png")
+        
+        # Fonts
+        poppins = Font.poppins(size=50, variant="bold")
+        poppins_small = Font.poppins(size=25, variant="regular")
+        poppins_light = Font.poppins(size=20, variant="light")
 
+        background.paste(profile, (325, 90))
+        background.ellipse((325, 90), 150, 150, outline="white", stroke_width=4)
+        background.text(
+            (400, 260),
+            "WELCOME",
+            color="white",
+            font=poppins,
+            align="center",
+            stroke_width=2,
+        )
+        background.text(
+            (400, 325),
+            f"{member.name}",
+            color="white",
+            font=poppins_small,
+            align="center",
+        )
+        background.text(
+            (400, 360),
+            f"You are the {member.guild.member_count + 1}th Member",
+            color="#0BE7F5",
+            font=poppins_small,
+            align="center",
+        )
+        # Creating nextcord.File object from image_bytes from editor
+        file = discord.File(fp=background.image_bytes, filename=f'{member.name}.png')
+        
+        await channel.send(file=file)
+            
 @tree.command(name='play', description='Play a song from YouTube')
 async def play(interaction: discord.Interaction, search: str):
     await interaction.response.defer()
@@ -134,14 +170,15 @@ async def skip(interaction: discord.Interaction):
 @tree.command(name='stop', description='Stop playing music and leave the voice channel')
 async def stop(interaction: discord.Interaction):
     await interaction.response.defer()
-
     if interaction.guild.voice_client:
         interaction.guild.voice_client.stop()  # Stop any playing song
         await interaction.guild.voice_client.disconnect()
         # Clean up the file of the currently playing song
-        if now_playing is not None:
+        try:
             now_playing.cleanup() 
-            now_playing = None
+        except:
+            pass    
+        now_playing = None
         await interaction.followup.send("Disconnected from the voice channel.")
     else:
         await interaction.followup.send("I'm not connected to a voice channel.")

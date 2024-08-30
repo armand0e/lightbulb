@@ -1,4 +1,5 @@
 # Build the lightbulb container
-`docker build -t lightbulb .`
-# Run the lightbulb container
-`docker run -d lightbulb`
+```sh
+docker build -t lightbulb .
+docker run -d lightbulb
+```
