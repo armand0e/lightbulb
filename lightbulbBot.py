@@ -55,10 +55,10 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data, filename=filename)
     
-    def cleanup(self):
+    async def cleanup(self):
         """Delete the downloaded file."""
         if self.filename and os.path.isfile(self.filename):
-            os.remove(self.filename)
+            await os.remove(self.filename)
             print(f"Deleted file: {self.filename}")
 
 song_queue = []

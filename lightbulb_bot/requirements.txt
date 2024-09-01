@@ -6,4 +6,5 @@ asyncio
 easy-pil
 torch
 diffusers
+transformers
 accelerate
