@@ -10,15 +10,18 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the requirements.txt file into the container
+RUN mkdir cogs
+RUN mkdir bin
+
+ 
+# Copy the files into the container
 COPY requirements.txt .
-COPY banner.png .
+COPY cogs/*.py cogs/
+COPY bin/* bin/
+COPY main.py .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your bot's code into the container
-COPY lightbulbBot.py bot.py
-
-# Command to run your bot
-CMD ["python", "bot.py"]
+# Command to run the bot
+CMD ["python", "main.py"]

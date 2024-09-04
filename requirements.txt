@@ -1,9 +1,6 @@
-discord.py
+discord
 discord.py[voice]
 yt-dlp
 PyNaCl
 asyncio
 easy-pil
-torch
-diffusers
-accelerate

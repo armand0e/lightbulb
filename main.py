@@ -13,10 +13,16 @@ tree = app_commands.CommandTree(client)
 # List of cogs to load
 cogs = ['cogs.music', 'cogs.welcome', 'cogs.basic']
 
-# Channel ID where the role picker message will be sent
-CHANNEL_ID = 1279312642930114591  # Replace with your actual channel ID
+# Guild IDs and their corresponding channel IDs where role picker messages will be sent
+# Replace with your actual guild IDs and channel IDs
+CHANNEL_IDS = {
+    507008776482586624: 1279312642930114591,  # Guild ID for "Unforseeable Activities"
+    1002171625367674910: 1280242025844838444,  # Guild ID for "Kommand0e"
+}
+
+# Emoji to role mapping
 ROLE_EMOJI_MAP = {
-    "🎮": "Gamer"  # Emoji to role mapping
+    "🎮": "Gamer"
 }
 
 # Color picker emoji to role map with corresponding colors (RGB format)
@@ -29,11 +35,11 @@ COLOR_EMOJI_MAP = {
     "🟣": ("Purple", discord.Color.purple()),
     "⚫": ("Black", discord.Color.default()),  # Using default for black
     "⚪": ("White", discord.Color.from_rgb(255, 255, 255)),  # Custom white color
-    # Add more colors and roles as needed
 }
 
 # Discord bot token
 TOKEN = 'MTEyOTI3MDA1OTUxMzE1MTUzOQ.Gewhaj.3y6kxshPbRdcrPB2pa5AsxxfoyYHUmgApKpGMo'  # Replace with your actual bot token
+
 
 async def ensure_role_exists(guild, role_name, color):
     """
@@ -51,42 +57,56 @@ async def ensure_role_exists(guild, role_name, color):
             print(f"Error creating role {role_name}: {e}")
     return role
 
+
 @client.event
 async def on_ready():
     # Synchronize the command tree with Discord
     await tree.sync()
     print(f'Logged in as {client.user}')
 
-    # Ensure all color roles exist
-    guild = discord.utils.get(client.guilds)  # Modify this if you want to ensure for a specific guild
-    if guild:
-        for role_name, color in COLOR_EMOJI_MAP.values():
-            await ensure_role_exists(guild, role_name, color)
+    # Iterate over each guild (server) the bot is in
+    for guild in client.guilds:
+        channel_id = CHANNEL_IDS.get(guild.id)  # Use guild ID to get the channel ID
+        if not channel_id:
+            print(f"No channel ID configured for guild: {guild.name} (ID: {guild.id})")
+            continue
 
-    # Send color picker message before the role picker message
-    channel = client.get_channel(CHANNEL_ID)
-    if channel:
-        color_text = "**Choose your name color**\nReact to select a color:"
-        color_message = await channel.send(color_text)
-        # Add reactions based on the defined color emoji map
-        for emoji in COLOR_EMOJI_MAP.keys():
-            await color_message.add_reaction(emoji)
-        print(f'Color picker sent.')
+        channel = client.get_channel(channel_id)
+        if channel:
+            print(f"Sending messages in guild: {guild.name} (ID: {guild.id})")
+            # Ensure all color roles exist
+            for role_name, color in COLOR_EMOJI_MAP.values():
+                await ensure_role_exists(guild, role_name, color)
 
-        # Send role picker message
-        role_text = "# Pick your role(s)\n🎮: Steam-Sale Notifications"
-        role_message = await channel.send(role_text)
-        # Add reactions based on the defined role emoji map
-        for emoji in ROLE_EMOJI_MAP.keys():
-            await role_message.add_reaction(emoji)
-        print(f'Role picker sent.')
+            # Send color picker message 
+            color_text = "## Choose your name color\n(give it a second to load)"
+            color_message = await channel.send(color_text)
+            # Add reactions based on the defined color emoji map
+            for emoji in COLOR_EMOJI_MAP.keys():
+                await color_message.add_reaction(emoji)
+            print(f'Color picker sent in {guild.name}.')
+
+            # Send role picker message
+            role_text = "## Pick your role(s)\n\t**🎮 Gamer:** Steam-Sale Notifications\n\t"
+            role_message = await channel.send(role_text)
+            # Add reactions based on the defined role emoji map
+            for emoji in ROLE_EMOJI_MAP.keys():
+                await role_message.add_reaction(emoji)
+            print(f'Role picker sent in {guild.name}.')
+        else:
+            print(f"Channel not found in guild: {guild.name} (ID: {guild.id})")
+
 
 @client.event
 async def on_reaction_add(reaction, user):
     if user.bot:  # Ignore reactions from bots
         return
 
-    channel = client.get_channel(CHANNEL_ID)
+    guild = reaction.message.guild
+    if guild.id not in CHANNEL_IDS:
+        return
+
+    channel = client.get_channel(CHANNEL_IDS[guild.id])
     if reaction.message.channel.id != channel.id:
         return
 
@@ -99,15 +119,13 @@ async def on_reaction_add(reaction, user):
                     if reacting_user == user:
                         await react.remove(user)
 
-    guild = reaction.message.guild
-
     # Handle color role assignment
     color_role_name, color = COLOR_EMOJI_MAP.get(reaction.emoji, (None, None))
     if color_role_name:
         # Ensure the role exists before assigning
         color_role = await ensure_role_exists(guild, color_role_name, color)
         if color_role:
-            await user.add_roles(color_role)       # Add the new color role
+            await user.add_roles(color_role)  # Add the new color role
         return  # Exit early to reduce unnecessary processing
 
     # Handle other role assignment
@@ -117,16 +135,19 @@ async def on_reaction_add(reaction, user):
         if role:
             await user.add_roles(role)
 
+
 @client.event
 async def on_reaction_remove(reaction, user):
     if user.bot:  # Ignore reactions from bots
         return
 
-    channel = client.get_channel(CHANNEL_ID)
-    if reaction.message.channel.id != channel.id:
+    guild = reaction.message.guild
+    if guild.id not in CHANNEL_IDS:
         return
 
-    guild = reaction.message.guild
+    channel = client.get_channel(CHANNEL_IDS[guild.id])
+    if reaction.message.channel.id != channel.id:
+        return
 
     # Handle color role removal
     color_role_name, _ = COLOR_EMOJI_MAP.get(reaction.emoji, (None, None))
@@ -141,6 +162,7 @@ async def on_reaction_remove(reaction, user):
         role = discord.utils.get(guild.roles, name=role_name)
         if role:
             await user.remove_roles(role)
+
 
 # Load all cogs
 for cog in cogs:
