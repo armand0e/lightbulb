@@ -17,13 +17,13 @@ cogs = ['cogs.music', 'cogs.welcome', 'cogs.basic']
 
 # Guild IDs and their corresponding channel IDs where role picker messages will be sent
 CHANNEL_IDS = {
-    507008776482586624: 1279312642930114591,  # Guild ID for "Unforseeable Activities"
-    1002171625367674910: 1280242025844838444,  # Guild ID for "Kommand0e"
+    507008776482586624: 1279312642930114591,  # Guild ID for "Unforseeable Activities" : Channel ID for Role Selection
+    1002171625367674910: 1280242025844838444,  # Guild ID for "Kommand0e" : Channel ID for Role Selection
 }
 
 # Emoji to role mapping
 ROLE_EMOJI_MAP = {
-    "🎮": ("Gamer", "Steam free promotions")
+    "🎮": ("Gamer", "Free Steam games")
 }
 
 # Color picker emoji to role map with corresponding colors (RGB format)
@@ -53,7 +53,10 @@ async def ensure_role_exists(guild, role_name, color):
 
 @client.event
 async def on_ready():
-    await tree.sync()
+    for guild_id in CHANNEL_IDS.keys():
+        guild = discord.Object(id=guild_id)
+        await tree.sync(guild=guild)  # Sync commands for specific guild
+        print(f'Synced commands for guild: {guild_id}')
     print(f'Logged in as {client.user}')
 
     for guild in client.guilds:
