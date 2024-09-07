@@ -22,7 +22,7 @@ CHANNEL_IDS = {
 
 # Emoji to role mapping
 ROLE_EMOJI_MAP = {
-    "🎮": "Gamer"
+    "🎮": ("Gamer", "Steam sale notifications")
 }
 
 # Color picker emoji to role map with corresponding colors (RGB format)
@@ -33,13 +33,10 @@ COLOR_EMOJI_MAP = {
     "🟢": ("Green", discord.Color.green()),
     "🔵": ("Blue", discord.Color.blue()),
     "🟣": ("Purple", discord.Color.purple()),
-    "⚫": ("Black", discord.Color.default()),  # Using default for black
+    "🟤": ("Brown", discord.Color.from_str('#8f653b')),
+    "⚫": ("Black", discord.Color.from_rgb(28, 28, 28)),  # Using default for black
     "⚪": ("White", discord.Color.from_rgb(255, 255, 255)),  # Custom white color
 }
-
-# Discord bot token
-TOKEN = 'MTEyOTI3MDA1OTUxMzE1MTUzOQ.Gewhaj.3y6kxshPbRdcrPB2pa5AsxxfoyYHUmgApKpGMo'  # Replace with your actual bot token
-
 
 async def ensure_role_exists(guild, role_name, color):
     """
@@ -56,7 +53,6 @@ async def ensure_role_exists(guild, role_name, color):
         except Exception as e:
             print(f"Error creating role {role_name}: {e}")
     return role
-
 
 @client.event
 async def on_ready():
@@ -75,11 +71,14 @@ async def on_ready():
         if channel:
             print(f"Sending messages in guild: {guild.name} (ID: {guild.id})")
             # Ensure all color roles exist
+            role_mentions = {}
             for role_name, color in COLOR_EMOJI_MAP.values():
-                await ensure_role_exists(guild, role_name, color)
+                role = await ensure_role_exists(guild, role_name, color)
+                role_mentions[role_name] = role.id
 
-            # Send color picker message 
-            color_text = "## Choose your name color\n(give it a second to load)"
+            # Send color picker message with proper role mentions
+            color_text = "> # Name Colors\n" + "\n".join(
+                [f"> {emoji} <@&{role_mentions[role_name]}>" for emoji, (role_name, _) in COLOR_EMOJI_MAP.items()])
             color_message = await channel.send(color_text)
             # Add reactions based on the defined color emoji map
             for emoji in COLOR_EMOJI_MAP.keys():
@@ -87,7 +86,8 @@ async def on_ready():
             print(f'Color picker sent in {guild.name}.')
 
             # Send role picker message
-            role_text = "## Pick your role(s)\n\t**🎮 Gamer:** Steam-Sale Notifications\n\t"
+            role_text = "> # Role Selection\n" + "\n".join(
+                [f"> {emoji}: {description}" for emoji, (_, description) in ROLE_EMOJI_MAP.items()])
             role_message = await channel.send(role_text)
             # Add reactions based on the defined role emoji map
             for emoji in ROLE_EMOJI_MAP.keys():
@@ -95,7 +95,6 @@ async def on_ready():
             print(f'Role picker sent in {guild.name}.')
         else:
             print(f"Channel not found in guild: {guild.name} (ID: {guild.id})")
-
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -129,12 +128,12 @@ async def on_reaction_add(reaction, user):
         return  # Exit early to reduce unnecessary processing
 
     # Handle other role assignment
-    role_name = ROLE_EMOJI_MAP.get(reaction.emoji)
-    if role_name:
+    role_info = ROLE_EMOJI_MAP.get(reaction.emoji)
+    if role_info:
+        role_name, _ = role_info
         role = discord.utils.get(guild.roles, name=role_name)
         if role:
             await user.add_roles(role)
-
 
 @client.event
 async def on_reaction_remove(reaction, user):
@@ -157,12 +156,12 @@ async def on_reaction_remove(reaction, user):
             await user.remove_roles(color_role)
 
     # Handle other role removal
-    role_name = ROLE_EMOJI_MAP.get(reaction.emoji)
-    if role_name:
+    role_info = ROLE_EMOJI_MAP.get(reaction.emoji)
+    if role_info:
+        role_name, _ = role_info
         role = discord.utils.get(guild.roles, name=role_name)
         if role:
             await user.remove_roles(role)
-
 
 # Load all cogs
 for cog in cogs:
@@ -174,4 +173,4 @@ for cog in cogs:
         print(f"Failed to load cog {cog}: {e}")
 
 # Run the client with your bot token
-client.run(TOKEN)
+client.run('MTEyOTI3MDA1OTUxMzE1MTUzOQ.G1I4aa.s4-Zh5bFut1Cgx8RPBkMCeCarX6k2ws1ooNCQI')  # Replace with your actual bot token
