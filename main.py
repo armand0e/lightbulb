@@ -23,7 +23,8 @@ CHANNEL_IDS = {
 
 # Emoji to role mapping
 ROLE_EMOJI_MAP = {
-    "🎮": ("Gamer", "Free Steam games")
+    "🎮": ("Gamer", "Free Steam games"),
+    "💎": ("Crafter", "Minecraft server info")
 }
 
 # Color picker emoji to role map with corresponding colors (RGB format)
@@ -88,9 +89,30 @@ async def on_ready():
                 for message in messages:
                     if "Name Colors" in message.content:
                         await message.edit(content=color_text)
+                        if len(message.reactions) < len(COLOR_EMOJI_MAP.keys()):
+                            print("New color added!")
+                            reacted_emojis = []
+                            for reaction in message.reactions:
+                                reacted_emojis.append(reaction.emoji)
+                            for emoji in COLOR_EMOJI_MAP.keys():
+                                if emoji in reacted_emojis:
+                                    pass
+                                else:
+                                    await message.add_reaction(emoji)
                     elif "Role Selection" in message.content:
                         await message.edit(content=role_text)
-
+                        if len(message.reactions) < len(ROLE_EMOJI_MAP.keys()):
+                            print("New role added!")
+                            reacted_emojis = []
+                            for reaction in message.reactions:
+                                reacted_emojis.append(reaction.emoji)
+                            for emoji in ROLE_EMOJI_MAP.keys():
+                                if emoji in reacted_emojis:
+                                    pass
+                                else:
+                                    await message.add_reaction(emoji)
+                                    
+                                    
                 print(f'Updated color and role picker messages in {guild.name}.')
             else:
                 # Send new messages if not found
@@ -137,7 +159,7 @@ async def on_raw_reaction_add(payload):
                             print("Bot does not have permission to remove reactions.")
                         except discord.HTTPException as e:
                             print(f"Rate limit hit while removing reaction: {e}")
-                            await asyncio.sleep(5)  # Add delay on hitting rate limit
+                            await asyncio.sleep(1)  # Add delay on hitting rate limit
                         except Exception as e:
                             print(f"Error removing reaction: {e}")
 
