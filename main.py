@@ -18,7 +18,7 @@ cogs = ['cogs.music', 'cogs.welcome', 'cogs.basic']
 # Guild IDs and their corresponding channel IDs where role picker messages will be sent
 CHANNEL_IDS = {
     507008776482586624: 1279312642930114591,  # Guild ID for "Unforseeable Activities" : Channel ID for Role Selection
-    1301398304839438356: 1301399496030294036,  # Guild ID for "Kommand0e" : Channel ID for Role Selection
+    1301398304839438356: 1301399496030294036  # Guild ID for "Kommand0e" : Channel ID for Role Selection
 }
 
 # Emoji to role mapping
