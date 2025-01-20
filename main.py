@@ -24,7 +24,7 @@ CHANNEL_IDS = {
 # Emoji to role mapping
 ROLE_EMOJI_MAP = {
     "🎮": ("Gamer", "Free Steam games"),
-    "💎": ("Crafter", "Minecraft server info"),
+    "💎": ("Co-op warrior", "Server info"),
     "💿": ("DJ", "Access to song requests"),
     "🏎️": ("RL", "Rocket League stats")
 }

@@ -1,2 +1,2 @@
 docker build -t lightbulb .
-docker run -d lightbulb
+docker run --name lightbulb -d lightbulb
