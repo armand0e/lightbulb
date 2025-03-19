@@ -18,7 +18,7 @@ RUN mkdir bin
 COPY requirements.txt .
 COPY cogs/*.py cogs/
 COPY bin/* bin/
-COPY main.py .
+COPY *.py .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
