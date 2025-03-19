@@ -1,6 +1,8 @@
 import asyncio
 import discord
 from discord import app_commands
+from config import TOKEN
+import logging
 
 # Intents and client setup
 intents = discord.Intents.default()
@@ -15,12 +17,19 @@ tree = app_commands.CommandTree(client)
 # List of cogs to load
 cogs = ['cogs.music', 'cogs.welcome', 'cogs.basic']
 
-# Guild IDs and their corresponding channel IDs where role picker messages will be sent
-CHANNEL_IDS = {
-    507008776482586624: 1279312642930114591,  # Guild ID for "Unforseeable Activities" : Channel ID for Role Selection
-    1301398304839438356: 1301399496030294036  # Guild ID for "Kommand0e" : Channel ID for Role Selection
-}
+class Server:
+    name: str
+    id: int
+    channel: int
+    
+    def __init__(self, name: str, id: int, channel: int):
+        self.name = name
+        self.id = id
+        self.channel = channel
 
+# Guild IDs and their corresponding channel IDs where role picker messages will be sent
+GUILDS = [Server("The Crew", 943597584017154118, 0)]
+'''
 # Emoji to role mapping
 ROLE_EMOJI_MAP = {
     "🎮": ("Gamer", "Free Steam games"),
@@ -53,15 +62,15 @@ async def ensure_role_exists(guild, role_name, color):
         except Exception as e:
             print(f"Error creating role {role_name}: {e}")
     return role
-
+'''
 @client.event
 async def on_ready():
-    for guild_id in CHANNEL_IDS.keys():
-        guild = discord.Object(id=guild_id)
-        await tree.sync(guild=guild)  # Sync commands for specific guild
-        print(f'Synced commands for guild: {guild_id}')
+   for server in GUILDS:
+    guild = discord.Object(id=server.id)
+    await tree.sync(guild=guild)  # Sync commands for specific guild
+    print(f'Synced commands for guild: {server.name}')
     print(f'Logged in as {client.user}')
-
+'''
     for guild in client.guilds:
         channel_id = CHANNEL_IDS.get(guild.id)
         if not channel_id:
@@ -128,7 +137,7 @@ async def on_ready():
                 print(f'Sent new color and role picker messages in {guild.name}.')
         else:
             print(f"Channel not found in guild: {guild.name} (ID: {guild.id})")
-
+            
 @client.event
 async def on_raw_reaction_add(payload):
     if payload.guild_id is None:  # Ignore DMs
@@ -212,15 +221,16 @@ async def on_raw_reaction_remove(payload):
         role = discord.utils.get(guild.roles, name=role_name)
         if role:
             await user.remove_roles(role)
-
+'''
+logging.getLogger()
 # Load all cogs
 for cog in cogs:
     try:
         module = __import__(cog, fromlist=['setup'])
         module.setup(client, tree)
-        print(f"Loaded cog: {cog}")
+        logging.info(f"Loaded cog: {cog}")
     except Exception as e:
-        print(f"Failed to load cog {cog}: {e}")
+        logging.warning(f"Failed to load cog {cog}: {e}")
 
 # Run the client with your bot token
-client.run('MTEyOTI2NjcyNzAyNTM4NTU1NQ.Gq0tMM.VfkwGdi30mnCJZPivYtmMs8lcD2MLlLq1uC-hY')  # Replace with your actual bot token
+client.run(TOKEN)  # Replace with your actual bot token
