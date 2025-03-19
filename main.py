@@ -223,4 +223,4 @@ for cog in cogs:
         print(f"Failed to load cog {cog}: {e}")
 
 # Run the client with your bot token
-client.run('MTEyOTI3MDA1OTUxMzE1MTUzOQ.G1I4aa.s4-Zh5bFut1Cgx8RPBkMCeCarX6k2ws1ooNCQI')  # Replace with your actual bot token
+client.run('MTEyOTI2NjcyNzAyNTM4NTU1NQ.Gq0tMM.VfkwGdi30mnCJZPivYtmMs8lcD2MLlLq1uC-hY')  # Replace with your actual bot token
