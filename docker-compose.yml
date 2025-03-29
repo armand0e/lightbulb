@@ -1,0 +1,15 @@
+services:
+  lightbulb:
+    build:
+      context: ./lightbulb
+      dockerfile: Dockerfile
+    image: lightbulb
+    container_name: lightbulb
+    restart: always
+  blackbulb:
+    build:
+      context: ./blackbulb
+      dockerfile: Dockerfile
+    image: blackbulb
+    container_name: blackbulb
+    restart: always
