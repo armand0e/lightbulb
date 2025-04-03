@@ -1,9 +1,0 @@
-services:
-  lightbulb:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    image: lightbulb/latest
-    container_name: lightbulb
-    restart: always
-
