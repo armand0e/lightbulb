@@ -1,0 +1,7 @@
+discord
+discord.py
+discord.py[voice]
+yt-dlp
+PyNaCl
+asyncio
+easy-pil
