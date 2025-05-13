@@ -3,7 +3,7 @@ services:
     build:
       context: ./blackbulb
       dockerfile: Dockerfile
-    image: blackbulb/latest
+    image: blackbulb
     container_name: blackbulb
     restart: always
   lightbulb:
