@@ -133,17 +133,36 @@ async def skip(interaction: discord.Interaction):
 )
 async def stop(interaction: discord.Interaction):
     await interaction.response.defer()
-    if interaction.guild.voice_client:
-        interaction.guild.voice_client.stop()
-        await interaction.guild.voice_client.disconnect()
-        try:
-            now_playing.cleanup()
-        except:
-            pass
-        now_playing = None
-        await interaction.followup.send("Disconnected from the voice channel.")
-    else:
+
+    global now_playing, song_queue
+    voice_client = interaction.guild.voice_client
+
+    if not voice_client:
         await interaction.followup.send("I'm not connected to a voice channel.")
+        return
+
+    try:
+        if voice_client.is_playing() or voice_client.is_paused():
+            voice_client.stop()
+        await voice_client.disconnect()
+    except Exception as e:
+        print(f"Error while stopping and disconnecting: {e}")
+        await interaction.followup.send(
+            "There was an error disconnecting from the voice channel."
+        )
+        return
+
+    try:
+        if now_playing:
+            now_playing.cleanup()
+    except Exception as e:
+        print(f"Error while cleaning up current track: {e}")
+
+    now_playing = None
+    song_queue.clear()
+    await interaction.followup.send(
+        "Disconnected from the voice channel and cleared the queue."
+    )
 
 
 # Newly added commands integrated properly
