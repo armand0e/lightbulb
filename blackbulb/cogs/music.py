@@ -65,27 +65,46 @@ class YTDLSource(discord.PCMVolumeTransformer):
             print(f"Deleted file: {self.filename}")
 
 
-song_queue = []
-now_playing = None
+song_queues = {}
+now_playing = {}
 
 
 async def play_next_song(interaction):
-    global now_playing
-    if song_queue:
-        now_playing = song_queue.pop(0)
-        interaction.guild.voice_client.play(
-            now_playing,
-            after=lambda e: asyncio.run_coroutine_threadsafe(
-                play_next_song(interaction), interaction.client.loop
-            ),
-        )
-        await interaction.channel.send(f"**Now playing:** {now_playing.title}")
-    else:
-        await interaction.guild.voice_client.disconnect()
-        now_playing = None
+    guild = interaction.guild
+    if guild is None:
+        return
 
-    if now_playing:
-        now_playing.cleanup()
+    guild_id = guild.id
+    queue = song_queues.get(guild_id, [])
+
+    if not queue:
+        voice_client = guild.voice_client
+        if voice_client and voice_client.is_connected():
+            await voice_client.disconnect()
+        now_playing[guild_id] = None
+        return
+
+    next_track = queue.pop(0)
+    now_playing[guild_id] = next_track
+
+    def after_playback(error):
+        try:
+            if next_track:
+                next_track.cleanup()
+        except Exception as e:
+            print(f"Error cleaning up track: {e}")
+        try:
+            asyncio.run_coroutine_threadsafe(
+                play_next_song(interaction), interaction.client.loop
+            )
+        except Exception as e:
+            print(f"Error scheduling next song: {e}")
+
+    guild.voice_client.play(
+        next_track,
+        after=after_playback,
+    )
+    await interaction.channel.send(f"**Now playing:** {next_track.title}")
 
 
 @discord.app_commands.command(name="play", description="Play a song from YouTube")
@@ -109,7 +128,9 @@ async def play(interaction: discord.Interaction, search: str):
             )
             return
 
-        song_queue.append(player)
+        guild_id = interaction.guild.id
+        queue = song_queues.setdefault(guild_id, [])
+        queue.append(player)
         await interaction.followup.send(f"**Added to queue:** {player.title}")
 
         if not interaction.guild.voice_client.is_playing():
@@ -134,7 +155,9 @@ async def skip(interaction: discord.Interaction):
 async def stop(interaction: discord.Interaction):
     await interaction.response.defer()
 
-    global now_playing, song_queue
+    guild_id = interaction.guild.id
+    queue = song_queues.get(guild_id, [])
+    current = now_playing.get(guild_id)
     voice_client = interaction.guild.voice_client
 
     if not voice_client:
@@ -153,13 +176,13 @@ async def stop(interaction: discord.Interaction):
         return
 
     try:
-        if now_playing:
-            now_playing.cleanup()
+        if current:
+            current.cleanup()
     except Exception as e:
         print(f"Error while cleaning up current track: {e}")
 
-    now_playing = None
-    song_queue.clear()
+    now_playing[guild_id] = None
+    queue.clear()
     await interaction.followup.send(
         "Disconnected from the voice channel and cleared the queue."
     )
@@ -170,17 +193,19 @@ async def stop(interaction: discord.Interaction):
 async def queue(interaction: discord.Interaction):
     await interaction.response.defer()
 
-    queue_list = "\n".join(
-        [f"**{i+1}.** {song.title}" for i, song in enumerate(song_queue)]
-    )
-    if now_playing:
+    guild_id = interaction.guild.id
+    queue = song_queues.get(guild_id, [])
+    current = now_playing.get(guild_id)
+
+    queue_list = "\n".join([f"**{i+1}.** {song.title}" for i, song in enumerate(queue)])
+    if current:
         message = (
-            f"**Now playing:** {now_playing.title}\n**Next:**\n{queue_list}"
+            f"**Now playing:** {current.title}\n**Next:**\n{queue_list}"
             if queue_list
-            else f"**Now playing:** {now_playing.title}\n**Next:** No songs in queue"
+            else f"**Now playing:** {current.title}\n**Next:** No songs in queue"
         )
     else:
-        message = f"**Now playing:** No song is currently playing.\n*Next:** No songs in queue"
+        message = "**Now playing:** No song is currently playing.\n**Next:** No songs in queue"
     await interaction.followup.send(message)
 
 
@@ -188,8 +213,11 @@ async def queue(interaction: discord.Interaction):
 async def remove(interaction: discord.Interaction, index: int):
     await interaction.response.defer()
 
-    if 1 <= index <= len(song_queue):
-        removed_song = song_queue.pop(index - 1)
+    guild_id = interaction.guild.id
+    queue = song_queues.get(guild_id, [])
+
+    if 1 <= index <= len(queue):
+        removed_song = queue.pop(index - 1)
         await interaction.followup.send(f"Removed {removed_song.title} from the queue.")
     else:
         await interaction.followup.send("Invalid index. Please provide a valid number.")
@@ -257,6 +285,9 @@ async def playlist(interaction: discord.Interaction, url: str):
         entries = [data]
 
     # If the URL is a Spotify playlist, we need to search YouTube for each track.
+    guild_id = interaction.guild.id
+    queue = song_queues.setdefault(guild_id, [])
+
     if "spotify.com" in url:
         for entry in entries:
             if entry is None:
@@ -279,7 +310,10 @@ async def playlist(interaction: discord.Interaction, url: str):
                 player = await YTDLSource.from_url(
                     query, loop=interaction.client.loop, stream=False
                 )
-                song_queue.append(player)
+                if player is None:
+                    print(f"Error adding Spotify track for query: {query}")
+                    continue
+                queue.append(player)
                 count += 1
             except Exception as e:
                 print(f"Error adding Spotify track: {e}")
@@ -288,18 +322,21 @@ async def playlist(interaction: discord.Interaction, url: str):
             f"**Added {count} songs to the queue from the Spotify playlist.**"
         )
     else:
-        # For YouTube and SoundCloud playlists, assume the extracted entries are directly playable.
+        # For YouTube and SoundCloud playlists, create sources per entry.
         for entry in entries:
             if entry is None:
                 continue
             try:
-                filename = playlist_ytdl.prepare_filename(entry)
-                player = YTDLSource(
-                    discord.FFmpegPCMAudio(filename, **ffmpeg_options),
-                    data=entry,
-                    filename=filename,
+                entry_url = entry.get("webpage_url") or entry.get("url")
+                if not entry_url:
+                    continue
+                player = await YTDLSource.from_url(
+                    entry_url, loop=interaction.client.loop, stream=False
                 )
-                song_queue.append(player)
+                if player is None:
+                    print(f"Error creating player for entry URL: {entry_url}")
+                    continue
+                queue.append(player)
                 count += 1
             except Exception as e:
                 print(f"Error processing an entry: {e}")

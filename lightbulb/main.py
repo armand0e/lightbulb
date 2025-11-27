@@ -170,6 +170,8 @@ async def on_raw_reaction_add(payload):
         return
 
     guild = client.get_guild(payload.guild_id)
+    if guild is None:
+        return
     # Only process if the guild is one of the configured ones
     if guild.id not in GUILD_IDS:
         return
@@ -177,6 +179,9 @@ async def on_raw_reaction_add(payload):
     channel = client.get_channel(payload.channel_id)
     message = await channel.fetch_message(payload.message_id)
     user = guild.get_member(payload.user_id)
+
+    if user is None:
+        return
 
     if user.bot:
         return
