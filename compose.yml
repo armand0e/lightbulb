@@ -6,10 +6,14 @@ services:
     image: blackbulb
     container_name: blackbulb
     restart: always
+    environment:
+      - BLACKBULB_BOT_TOKEN
   lightbulb:
     build:
-      context: ./lightbulb 
+      context: ./lightbulb
       dockerfile: Dockerfile
     image: lightbulb
     container_name: lightbulb
     restart: always
+    environment:
+      - LIGHTBULB_BOT_TOKEN

@@ -1,7 +1,11 @@
 import asyncio
 import discord
 from discord import app_commands
-from config import DISCORD_BOT_TOKEN as TOKEN
+import os
+
+TOKEN = os.getenv("LIGHTBULB_BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("LIGHTBULB_BOT_TOKEN environment variable is not set")
 
 # Intents and client setup
 intents = discord.Intents.default()
@@ -14,7 +18,8 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 # List of cogs to load
-cogs = ['cogs.music', 'cogs.welcome', 'cogs.basic']
+cogs = ["cogs.music", "cogs.welcome", "cogs.basic"]
+
 
 # Guild IDs and their corresponding channel IDs where role picker messages will be sent
 class Server:
@@ -23,9 +28,10 @@ class Server:
         self.id = id
         self.channel = channel
 
+
 GUILDS = [
     Server("Unforseeable Activities", 507008776482586624, 1279312642930114591),
-    Server("Kommand0e", 1301398304839438356, 1301399496030294036)
+    Server("Kommand0e", 1301398304839438356, 1301399496030294036),
 ]
 
 # Helper set for quick guild lookup
@@ -36,7 +42,7 @@ ROLE_EMOJI_MAP = {
     "🎮": ("Gamer", "Free Steam games"),
     "💎": ("Co-op warrior", "Server info"),
     "💿": ("DJ", "Access to song requests"),
-    "🏎️": ("RL", "Rocket League stats")
+    "🏎️": ("RL", "Rocket League stats"),
 }
 
 # Color picker emoji to role map with corresponding colors (RGB format)
@@ -47,22 +53,26 @@ COLOR_EMOJI_MAP = {
     "🟢": ("Green", discord.Color.green()),
     "🔵": ("Blue", discord.Color.blue()),
     "🟣": ("Purple", discord.Color.purple()),
-    "🟤": ("Brown", discord.Color.from_str('#8f653b')),
+    "🟤": ("Brown", discord.Color.from_str("#8f653b")),
     "⚫": ("Black", discord.Color.from_rgb(28, 28, 28)),  # Using default for black
     "⚪": ("White", discord.Color.from_rgb(255, 255, 255)),  # Custom white color
 }
+
 
 async def ensure_role_exists(guild, role_name, color):
     role = discord.utils.get(guild.roles, name=role_name)
     if not role:
         try:
-            role = await guild.create_role(name=role_name, color=color, reason="Color role created by bot")
+            role = await guild.create_role(
+                name=role_name, color=color, reason="Color role created by bot"
+            )
             print(f"Created role: {role_name} with color {color}")
         except discord.Forbidden:
             print(f"Missing permissions to create the role: {role_name}")
         except Exception as e:
             print(f"Error creating role {role_name}: {e}")
     return role
+
 
 @client.event
 async def on_ready():
@@ -73,8 +83,10 @@ async def on_ready():
             await tree.sync(guild=guild)
             print(f"Synced commands for guild: {server.name} ({server.id})")
         except Exception as e:
-            print(f"Failed to sync commands for guild: {server.name} ({server.id}) - {e}")
-    
+            print(
+                f"Failed to sync commands for guild: {server.name} ({server.id}) - {e}"
+            )
+
     # Global sync fallback in case guild-specific sync fails
     try:
         await tree.sync()
@@ -95,7 +107,7 @@ async def on_ready():
         if channel:
             print(f"Processing messages in guild: {server.name} (ID: {server.id})")
             messages = [message async for message in channel.history(limit=2)]
-            
+
             # Prepare role and color picker texts
             role_mentions = {}
             for role_name, color in COLOR_EMOJI_MAP.values():
@@ -103,10 +115,16 @@ async def on_ready():
                 role_mentions[role_name] = role.id
 
             color_text = "> # Name Colors\n" + "\n".join(
-                [f"> {emoji} <@&{role_mentions[role_name]}>" for emoji, (role_name, _) in COLOR_EMOJI_MAP.items()]
+                [
+                    f"> {emoji} <@&{role_mentions[role_name]}>"
+                    for emoji, (role_name, _) in COLOR_EMOJI_MAP.items()
+                ]
             )
             role_text = "> # Role Selection\n" + "\n".join(
-                [f"> {emoji} for **{description}**" for emoji, (_, description) in ROLE_EMOJI_MAP.items()]
+                [
+                    f"> {emoji} for **{description}**"
+                    for emoji, (_, description) in ROLE_EMOJI_MAP.items()
+                ]
             )
 
             if len(messages) >= 2:
@@ -116,7 +134,9 @@ async def on_ready():
                         await message.edit(content=color_text)
                         if len(message.reactions) < len(COLOR_EMOJI_MAP.keys()):
                             print("New color added!")
-                            reacted_emojis = [reaction.emoji for reaction in message.reactions]
+                            reacted_emojis = [
+                                reaction.emoji for reaction in message.reactions
+                            ]
                             for emoji in COLOR_EMOJI_MAP.keys():
                                 if emoji not in reacted_emojis:
                                     await message.add_reaction(emoji)
@@ -124,7 +144,9 @@ async def on_ready():
                         await message.edit(content=role_text)
                         if len(message.reactions) < len(ROLE_EMOJI_MAP.keys()):
                             print("New role added!")
-                            reacted_emojis = [reaction.emoji for reaction in message.reactions]
+                            reacted_emojis = [
+                                reaction.emoji for reaction in message.reactions
+                            ]
                             for emoji in ROLE_EMOJI_MAP.keys():
                                 if emoji not in reacted_emojis:
                                     await message.add_reaction(emoji)
@@ -140,6 +162,7 @@ async def on_ready():
                 print(f"Sent new color and role picker messages in {server.name}.")
         else:
             print(f"Channel not found in guild: {server.name} (ID: {server.id})")
+
 
 @client.event
 async def on_raw_reaction_add(payload):
@@ -191,6 +214,7 @@ async def on_raw_reaction_add(payload):
         if role:
             await user.add_roles(role)
 
+
 @client.event
 async def on_raw_reaction_remove(payload):
     if payload.guild_id is None:
@@ -221,10 +245,11 @@ async def on_raw_reaction_remove(payload):
         if role:
             await user.remove_roles(role)
 
+
 # Load all cogs
 for cog in cogs:
     try:
-        module = __import__(cog, fromlist=['setup'])
+        module = __import__(cog, fromlist=["setup"])
         module.setup(client, tree)
         print(f"Loaded cog: {cog}")
     except Exception as e:
