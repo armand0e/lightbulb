@@ -2,6 +2,7 @@ discord
 discord.py
 discord.py[voice]
 yt-dlp
+bgutil-ytdlp-pot-provider
 PyNaCl
 easy-pil
 asyncio

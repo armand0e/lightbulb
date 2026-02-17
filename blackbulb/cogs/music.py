@@ -21,6 +21,12 @@ ytdl_format_options = {
     "source_address": "0.0.0.0",
 }
 
+pot_provider_url = os.getenv("YTDLP_POT_PROVIDER_URL")
+if pot_provider_url:
+    ytdl_format_options["extractor_args"] = {
+        "youtubepot-bgutilhttp": {"base_url": [pot_provider_url]}
+    }
+
 ffmpeg_options = {"options": "-vn"}
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)

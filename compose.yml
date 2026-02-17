@@ -1,4 +1,9 @@
 services:
+  bgutil-provider:
+    image: brainicism/bgutil-ytdlp-pot-provider
+    container_name: bgutil-provider
+    restart: always
+
   blackbulb:
     build:
       context: ./blackbulb
@@ -6,8 +11,12 @@ services:
     image: blackbulb
     container_name: blackbulb
     restart: always
+    depends_on:
+      - bgutil-provider
     environment:
       - BLACKBULB_BOT_TOKEN
+      - YTDLP_POT_PROVIDER_URL=http://bgutil-provider:4416
+
   lightbulb:
     build:
       context: ./lightbulb
@@ -15,5 +24,8 @@ services:
     image: lightbulb
     container_name: lightbulb
     restart: always
+    depends_on:
+      - bgutil-provider
     environment:
       - LIGHTBULB_BOT_TOKEN
+      - YTDLP_POT_PROVIDER_URL=http://bgutil-provider:4416
